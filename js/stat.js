@@ -1,30 +1,40 @@
 'use strict';
 
-var cloud = {
+var Cloud = {
   WIDTH: 420,
   HEIGHT: 270,
   X: 100,
   Y: 10
 };
-var text = {
+var Phrase = {
   HEIGHT: 16,
   GAP_X: 20,
   GAP_Y: 20
 };
-var column = {
+var Column = {
   HEIGHT: 150,
   WIDTH: 40,
   GAP: 50
 };
-var textX = cloud.X + text.GAP_X;
-var textY = cloud.Y + text.GAP_Y;
-var captionY = cloud.Y + cloud.HEIGHT - text.GAP_Y;
+var textX = Cloud.X + Phrase.GAP_X;
+var textY = Cloud.Y + Phrase.GAP_Y;
+var captionY = Cloud.Y + Cloud.HEIGHT - Phrase.GAP_Y;
 var SHADOW_GAP = 10;
 var HISTOGRAM_GAP = 40;
+var COLOR_TEXT = '#000';
+var COLOR_PLAYER = 'rgba(255, 0, 0, 1)';
+var COLOR_SHADOW = 'rgba(0, 0, 0, 0.7)';
+var COLOR_CLOUD = '#fff';
+var FONT = 'PT Mono';
 
 var renderCloud = function (ctx, x, y, color) {
   ctx.fillStyle = color;
-  ctx.fillRect(x, y, cloud.WIDTH, cloud.HEIGHT);
+  ctx.fillRect(x, y, Cloud.WIDTH, Cloud.HEIGHT);
+};
+
+var createCloud = function (ctx) {
+  renderCloud(ctx, Cloud.X + SHADOW_GAP, Cloud.Y + SHADOW_GAP, COLOR_SHADOW);
+  renderCloud(ctx, Cloud.X, Cloud.Y, COLOR_CLOUD);
 };
 
 var getMaxElement = function (arr) {
@@ -42,6 +52,15 @@ var renderText = function (ctx, textCloud, textHeight) {
   ctx.fillText(textCloud, textX, textY + textHeight);
 };
 
+var createText = function (ctx) {
+  ctx.fillStyle = COLOR_TEXT;
+  ctx.font = Text.HEIGHT + 'px' + FONT;
+  ctx.textBaseline = 'hanging';
+
+  renderText(ctx, 'Ура вы победили!', 0);
+  renderText(ctx, 'Список результатов: ', Phrase.HEIGHT);
+};
+
 var renderValueColumn = function (ctx, value, valueX, valueY) {
   ctx.fillText(value, valueX, valueY);
 };
@@ -52,45 +71,42 @@ var renderCaptionColumn = function (ctx, caption, captionX) {
 
 var colorColumn = function (ctx, captionColumn) {
   if (captionColumn === 'Вы') {
-    ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+    ctx.fillStyle = COLOR_PLAYER;
   } else {
     ctx.fillStyle = 'hsl(240, ' + Math.floor(Math.random() * 100) + '%, 50%)';
   }
 };
 
 var renderColumn = function (ctx, columnX, columnY, columnHeight) {
-  ctx.fillRect(columnX, columnY, column.WIDTH, columnHeight);
+  ctx.fillRect(columnX, columnY, Column.WIDTH, columnHeight);
+};
+
+var createHistogram = function (ctx, columnNumber, columnTimes, columnNames, columnMaxTime) {
+  ctx.fillStyle = COLOR_TEXT;
+
+  var valueColumnX = Cloud.X + HISTOGRAM_GAP + (Column.WIDTH + Column.GAP) * columnNumber;
+  var valueColumnY = Cloud.Y + Cloud.HEIGHT - Phrase.GAP_X - Phrase.HEIGHT * 2 - (Column.HEIGHT * columnTimes[columnNumber]) / columnMaxTime;
+  renderValueColumn(ctx, Math.floor(columnTimes[columnNumber]), valueColumnX, valueColumnY);
+
+  var captionColumnX = Cloud.X + HISTOGRAM_GAP + (Column.WIDTH + Column.GAP) * columnNumber;
+  renderCaptionColumn(ctx, columnNames[columnNumber], captionColumnX);
+
+  colorColumn(ctx, columnNames[columnNumber]);
+
+  var histogramColumnX = Cloud.X + HISTOGRAM_GAP + (Column.WIDTH + Column.GAP) * columnNumber;
+  var histogramColumnY = Cloud.Y + Cloud.HEIGHT - Phrase.GAP_X - Phrase.HEIGHT - (Column.HEIGHT * columnTimes[columnNumber]) / columnMaxTime;
+  var histogramColumnHeight = (Column.HEIGHT * columnTimes[columnNumber]) / columnMaxTime;
+  renderColumn(ctx, histogramColumnX, histogramColumnY, histogramColumnHeight);
 };
 
 window.renderStatistics = function (ctx, names, times) {
-  renderCloud(ctx, cloud.X + SHADOW_GAP, cloud.Y + SHADOW_GAP, 'rgba(0, 0, 0, 0.7)');
-  renderCloud(ctx, cloud.X, cloud.Y, '#fff');
-
-  ctx.fillStyle = '#000';
-  ctx.font = text.HEIGHT + 'px PT Mono';
-  ctx.textBaseline = 'hanging';
-
-  renderText(ctx, 'Ура вы победили!', 0);
-  renderText(ctx, 'Список результатов: ', text.HEIGHT);
+  createCloud(ctx);
+  createText(ctx);
 
   var maxTime = getMaxElement(times);
 
   for (var i = 0; i < names.length; i++) {
-    ctx.fillStyle = '#000';
-
-    var valueColumnX = cloud.X + HISTOGRAM_GAP + (column.WIDTH + column.GAP) * i;
-    var valueColumnY = cloud.Y + cloud.HEIGHT - text.GAP_X - text.HEIGHT * 2 - (column.HEIGHT * times[i]) / maxTime;
-    renderValueColumn(ctx, Math.floor(times[i]), valueColumnX, valueColumnY);
-
-    var captionColumnX = cloud.X + HISTOGRAM_GAP + (column.WIDTH + column.GAP) * i;
-    renderCaptionColumn(ctx, names[i], captionColumnX);
-
-    colorColumn(ctx, names[i]);
-
-    var histogramColumnX = cloud.X + HISTOGRAM_GAP + (column.WIDTH + column.GAP) * i;
-    var histogramColumnY = cloud.Y + cloud.HEIGHT - text.GAP_X - text.HEIGHT - (column.HEIGHT * times[i]) / maxTime;
-    var histogramColumnHeight = (column.HEIGHT * times[i]) / maxTime;
-    renderColumn(ctx, histogramColumnX, histogramColumnY, histogramColumnHeight);
+    createHistogram(ctx, i, times, names, maxTime);
   }
 };
 
